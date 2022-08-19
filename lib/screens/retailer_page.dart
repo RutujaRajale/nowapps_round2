@@ -1,8 +1,10 @@
+import 'package:badges/badges.dart';
 import 'package:flutter/material.dart';
+import 'package:nowapps_round2/models/product_model.dart';
+import 'package:nowapps_round2/screens/cart_page.dart';
 import 'package:nowapps_round2/supporting_files/cart_provider.dart';
 import 'package:nowapps_round2/global_variables.dart';
 import 'package:nowapps_round2/widgets/plus_minus_widget.dart';
-import 'package:nowapps_round2/widgets/total_row_widget.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 
@@ -34,13 +36,35 @@ class _RetailerPageState extends State<RetailerPage> {
             return Scaffold(
               backgroundColor: const Color.fromARGB(255, 235, 239, 243),
               appBar: AppBar(
-                automaticallyImplyLeading: false,
-                title: SizedBox(
-                  height: 50,
-                  child: Image.network(GlobalVariables
-                      .retailerDetails[retailerName]["shopImage"]),
-                ),
-              ),
+                  automaticallyImplyLeading: false,
+                  title: SizedBox(
+                    height: 50,
+                    child: Image.network(GlobalVariables
+                        .retailerDetails[retailerName]["shopImage"]),
+                  ),
+                  actions: [
+                    Consumer<CartProvider>(
+                        builder: (context, provider, widget) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 20.0, top: 8.0),
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => CartPage()));
+                          },
+                          child: Badge(
+                            badgeColor:
+                                const Color.fromARGB(255, 161, 211, 237),
+                            badgeContent:
+                                Text(provider.getTotalQuantity().toString()),
+                            child: const Icon(Icons.shopping_cart),
+                          ),
+                        ),
+                      );
+                    })
+                  ]),
               body: _buildBody(context, retailerName),
             );
           } else {
@@ -52,7 +76,6 @@ class _RetailerPageState extends State<RetailerPage> {
   }
 
   Widget _buildBody(BuildContext context, String retailerName) {
-    TextEditingController _textFieldController = TextEditingController();
     return Consumer<CartProvider>(
       builder: (context, provider, widget) {
         if (provider.cart.isEmpty) {
@@ -155,168 +178,63 @@ class _RetailerPageState extends State<RetailerPage> {
                                 ],
                               ),
                             ),
-                            PlusMinusButtons(
-                              addQuantity: () {
-                                provider
-                                    .addProduct(provider.cart[index].prodId);
-                              },
-                              deleteQuantity: () {
-                                provider
-                                    .removeProduct(provider.cart[index].prodId);
-                              },
-                              text: provider.cart[index].quantity.toString(),
-                            ),
+                            if (provider.cart[index].quantity > 0)
+                              PlusMinusButtons(
+                                addQuantity: () {
+                                  provider
+                                      .addProduct(provider.cart[index].prodId);
+                                },
+                                deleteQuantity: () {
+                                  provider.removeProduct(
+                                      provider.cart[index].prodId);
+                                },
+                                text: provider.cart[index].quantity.toString(),
+                              ),
+                            if (provider.cart[index].quantity == 0)
+                              addToCartButton(provider.cart[index], provider),
                           ],
                         ),
                       ),
                     );
                   }),
-              Consumer<CartProvider>(
-                builder: (BuildContext context, value, Widget? child) {
-                  final ValueNotifier<int?> totalPrice = ValueNotifier(null);
-                  final ValueNotifier<int?> totalQuantity = ValueNotifier(null);
-                  for (var element in value.cart) {
-                    totalQuantity.value =
-                        (element.quantity) + (totalPrice.value ?? 0);
-                    totalPrice.value = (element.prodPrice * element.quantity) +
-                        (totalPrice.value ?? 0);
-                  }
-                  return Column(
-                    children: [
-                      ValueListenableBuilder<int?>(
-                          valueListenable: totalPrice,
-                          builder: (context, val, child) {
-                            return Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: Container(
-                                color: const Color.fromARGB(25, 9, 9, 9),
-                                child: TotalRowWidget(
-                                    title: 'Total Amount',
-                                    value: 'Rs. ' +
-                                        (val?.toStringAsFixed(2) ?? '0')),
-                              ),
-                            );
-                          }),
-                      ValueListenableBuilder<int?>(
-                          valueListenable: totalQuantity,
-                          builder: (context, val, child) {
-                            return totalQuantity.value! > 0
-                                ? Padding(
-                                    padding: const EdgeInsets.only(top: 8.0),
-                                    child: Align(
-                                        alignment: Alignment.center,
-                                        child: ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            primary: Colors.blue,
-                                          ),
-                                          child: const Text(
-                                              'Place Order & Checkout'),
-                                          onPressed: () async {
-                                            SharedPreferences prefs =
-                                                await SharedPreferences
-                                                    .getInstance();
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(SnackBar(
-                                              content: Text(
-                                                  "Order placed and checked out of " +
-                                                      retailerName),
-                                            ));
-                                            prefs.remove('checkIn');
-
-                                            Navigator.pop(context);
-                                          },
-                                        )),
-                                  )
-                                : Padding(
-                                    padding: const EdgeInsets.only(top: 25.0),
-                                    child: Align(
-                                        alignment: Alignment.center,
-                                        child: ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            primary: Colors.blue,
-                                          ),
-                                          child: const Text(
-                                              'Checkout without Order',
-                                              style: TextStyle(fontSize: 18.0)),
-                                          onPressed: () async {
-                                            showDialog(
-                                                context: context,
-                                                builder: (context) {
-                                                  return AlertDialog(
-                                                    title: const Text(
-                                                        'Reason for No Order'),
-                                                    content: TextField(
-                                                      onChanged: (value) {},
-                                                      controller:
-                                                          _textFieldController,
-                                                      decoration:
-                                                          const InputDecoration(
-                                                              hintText:
-                                                                  "Please enter reason here"),
-                                                    ),
-                                                    actions: <Widget>[
-                                                      Align(
-                                                        alignment:
-                                                            Alignment.center,
-                                                        child: ElevatedButton(
-                                                          child: const Text(
-                                                              'Submit and Checkout'),
-                                                          onPressed: () async {
-                                                            if (_textFieldController
-                                                                .text
-                                                                .isNotEmpty) {
-                                                              SharedPreferences
-                                                                  prefs =
-                                                                  await SharedPreferences
-                                                                      .getInstance();
-                                                              ScaffoldMessenger
-                                                                      .of(
-                                                                          context)
-                                                                  .showSnackBar(
-                                                                      SnackBar(
-                                                                content: Text(
-                                                                    "Reason submitted and checked out of " +
-                                                                        retailerName),
-                                                              ));
-                                                              prefs.remove(
-                                                                  'checkIn');
-
-                                                              int count = 0;
-                                                              Navigator
-                                                                  .popUntil(
-                                                                      context,
-                                                                      (route) {
-                                                                return count++ ==
-                                                                    2;
-                                                              });
-                                                            } else {
-                                                              ScaffoldMessenger
-                                                                      .of(
-                                                                          context)
-                                                                  .showSnackBar(
-                                                                      const SnackBar(
-                                                                content: Text(
-                                                                    "Please enter a reason to submit"),
-                                                              ));
-                                                            }
-                                                          },
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  );
-                                                });
-                                          },
-                                        )),
-                                  );
-                          }),
-                    ],
-                  );
-                },
-              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Align(
+                    alignment: Alignment.center,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        primary: Colors.blue,
+                      ),
+                      child: const Text('Proceed to checkout'),
+                      onPressed: () async {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => CartPage()));
+                      },
+                    )),
+              )
             ],
           );
         }
       },
+    );
+  }
+
+  addToCartButton(Product product, CartProvider provider) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0),
+      child: Align(
+          alignment: Alignment.center,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              primary: Colors.blue,
+            ),
+            child: const Text('Add to cart'),
+            onPressed: () async {
+              provider.addProduct(product.prodId);
+            },
+          )),
     );
   }
 }

@@ -4,7 +4,6 @@ import 'package:nowapps_round2/models/product_model.dart';
 
 class CartProvider with ChangeNotifier {
   DBHelper dbHelper = DBHelper();
-
   List<Product> cart = [];
 
   Future<List<Product>> getData() async {
@@ -34,11 +33,11 @@ class CartProvider with ChangeNotifier {
     return quantity;
   }
 
-  int getTotalAmount() {
-    int sum = 0;
-    for (Product p in cart) {
-      sum += p.quantity * p.prodPrice;
-    }
-    return sum;
-  }
+  // int getTotalAmount() {
+  //   int sum = 0;
+  //   for (Product p in cart) {
+  //     sum += p.quantity * p.prodPrice;
+  //   }
+  //   return sum;
+  // }
 }
